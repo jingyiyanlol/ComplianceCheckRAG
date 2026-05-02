@@ -400,51 +400,115 @@ make clean-all      # clean + remove .venv and node_modules
 ComplianceCheckRAG/
 ├── app/
 │   ├── main.py               # FastAPI app, CORS, Prometheus, routes
-│   ├── config.py             # pydantic-settings
+│   ├── config.py             # pydantic-settings — all config via env vars
 │   ├── conversation.py       # conversation state + SQLite persistence
-│   ├── pii.py                # Presidio masking
+│   ├── pii.py                # Presidio PII masking
 │   ├── llm.py                # async Ollama streaming client
 │   ├── metrics.py            # ccrag_* Prometheus metrics
 │   ├── rag/
 │   │   ├── ingest.py         # PDF → chunks → ChromaDB → llms-txt
 │   │   ├── chunking.py       # section-aware chunker
 │   │   ├── rewrite.py        # multi-turn query rewriter
-│   │   ├── retrieve.py       # Chroma search + doc_filter
+│   │   ├── retrieve.py       # async Chroma search with doc_filter
 │   │   └── generate.py       # prompt assembly + SSE stream
 │   └── telemetry/
-│       ├── schema.py         # SQLAlchemy models
+│       ├── schema.py         # SQLAlchemy models (Postgres-ready)
 │       ├── logger.py         # non-blocking async telemetry writes
-│       └── feedback.py       # feedback recording
+│       └── feedback.py       # thumbs up/down recording
 ├── monitoring/
-│   ├── prometheus.yml
+│   ├── prometheus.yml        # scrape config for backend + Pushgateway
 │   ├── grafana/
+│   │   ├── provisioning/
+│   │   │   ├── datasources/  # Prometheus datasource provisioning
+│   │   │   └── dashboards/   # dashboard provisioning config
+│   │   └── dashboards/
+│   │       ├── app-performance.json
+│   │       └── model-quality.json
 │   └── drift_job/
-│       ├── run_drift.py      # CLI entrypoint
-│       ├── snapshot.py       # pre-deploy baseline capture
-│       ├── retrieval_drift.py
-│       ├── output_drift.py
-│       ├── quality_eval.py
-│       ├── feedback_analysis.py
-│       └── requirements.drift.txt
-├── frontend/src/
-│   ├── components/           # ChatWindow, MessageList, MessageInput,
-│   │                         # CitationCard, FeedbackButtons, DocumentBadge, ScopeModal
-│   ├── hooks/                # useConversation, useStreamingChat, useLocalStorage
-│   ├── lib/api.ts            # all fetch calls
-│   └── types.ts
-├── .devcontainer/
-│   ├── Dockerfile            # python:3.11-slim + Node 24 — canonical dev environment
-│   └── devcontainer.json     # VS Code / Codespaces config; runs make setup on create
-├── data/                     # Drop PDFs here — gitignored
-├── llms-txt/                 # Generated markdown artifacts per ingested doc
+│       ├── run_drift.py              # CLI entrypoint: --trigger cron|ci|adhoc
+│       ├── snapshot.py               # pre-deploy baseline snapshot
+│       ├── retrieval_drift.py        # Evidently KS test on retrieval scores
+│       ├── output_drift.py           # Evidently embedding drift + PSI on length
+│       ├── quality_eval.py           # DeepEval faithfulness / relevance / precision
+│       ├── feedback_analysis.py      # thumbs-down ratio trend
+│       └── requirements.drift.txt   # pinned deps for the drift job container
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatWindow.tsx        # main layout wrapper
+│   │   │   ├── MessageList.tsx       # auto-scroll, aria-live
+│   │   │   ├── MessageInput.tsx      # mobile-aware, safe-area-inset
+│   │   │   ├── CitationCard.tsx      # expandable source citation
+│   │   │   ├── FeedbackButtons.tsx   # thumbs up/down, optimistic UI
+│   │   │   ├── DocumentBadge.tsx     # active scope badge in header
+│   │   │   └── ScopeModal.tsx        # session scope selector (new conv only)
+│   │   ├── hooks/
+│   │   │   ├── useConversation.ts    # conversation state + localStorage
+│   │   │   ├── useStreamingChat.ts   # SSE reader + abort controller
+│   │   │   └── useLocalStorage.ts    # generic typed localStorage hook
+│   │   ├── lib/
+│   │   │   └── api.ts                # all fetch calls — never inline fetch
+│   │   ├── types.ts
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json     # lockfile — install with npm ci
+│   ├── tsconfig.json
+│   ├── vite.config.ts        # proxies /api/* to backend in dev
+│   ├── tailwind.config.js
+│   └── Dockerfile            # node:24-slim build + nginx runtime
 ├── tests/
+│   ├── conftest.py
+│   ├── test_pii.py
+│   ├── test_rag_eval.py
+│   ├── test_conversation.py
+│   ├── test_telemetry.py
+│   └── test_security.py
 ├── k8s/
-├── .github/workflows/
+│   ├── manifests.yaml        # Namespace, ConfigMap, Deployments, PVCs
+│   └── cronjob-drift.yaml    # nightly drift job at 02:00
+├── .devcontainer/
+│   ├── Dockerfile            # python:3.11-slim + Node 24 + pip-tools
+│   └── devcontainer.json     # VS Code / Codespaces; runs make setup on create
+├── .claude/
+│   ├── agents/               # Claude Code subagents
+│   │   ├── code-reviewer.md
+│   │   ├── dependency-reviewer.md
+│   │   ├── drift-analyst.md
+│   │   ├── mobile-tester.md
+│   │   ├── rag-evaluator.md
+│   │   └── security-scanner.md
+│   └── commands/             # slash-command skills
+│       ├── ingest.md
+│       ├── scaffold.md
+│       ├── drift-run.md
+│       └── ship-check.md
+├── .github/
+│   └── workflows/
+│       ├── backend-ci.yml    # ruff + pytest + Docker build/push to GHCR
+│       └── frontend-ci.yml   # lint + build + bundle size check + push
+├── docs/                     # Detailed documentation per topic
+│   ├── architecture.md       # multi-turn pipeline, component responsibilities
+│   ├── ingestion.md          # PDF → chunk → ChromaDB pipeline deep-dive
+│   ├── monitoring.md         # Prometheus metrics, Grafana, drift detection
+│   ├── testing.md            # test suite structure, fixtures, coverage gaps
+│   └── deployment.md         # Docker Compose, K8s, CI/CD, env vars
+├── data/                     # Drop PDFs here — gitignored (PDFs only)
+│   ├── .gitkeep
+│   └── README.md             # ingestion instructions
+├── llms-txt/                 # Generated clean markdown per ingested doc
+│   └── .gitkeep
 ├── docker-compose.yml
-├── Dockerfile
-├── Dockerfile.drift
-├── Makefile
-└── .env.example
+├── Dockerfile                # backend — python:3.11-slim, non-root
+├── Dockerfile.drift          # drift job — slim Python, drift deps only
+├── Makefile                  # dev workflow: setup, run, test, compile-deps
+├── pyproject.toml            # requires-python, ruff config, pytest config
+├── requirements.in           # direct deps — edit this, not requirements.txt
+├── requirements.txt          # pip-compile output — fully pinned + annotated
+├── .python-version           # pyenv pin: 3.11
+├── .env.example
+└── README.md
 ```
 
 ---

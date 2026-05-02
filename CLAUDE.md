@@ -147,15 +147,13 @@ ComplianceCheckRAG/
 │   │   └── main.tsx
 │   ├── index.html
 │   ├── package.json
+│   ├── package-lock.json             # lockfile — use npm ci, not npm install
 │   ├── tsconfig.json
 │   ├── vite.config.ts
 │   ├── tailwind.config.js
 │   └── Dockerfile
-├── data/                             # Drop PDFs here — any number
-│   └── .gitkeep
-├── llms-txt/                         # Generated per ingested doc
-│   └── .gitkeep
 ├── tests/
+│   ├── conftest.py
 │   ├── test_pii.py
 │   ├── test_rag_eval.py
 │   ├── test_conversation.py
@@ -164,14 +162,47 @@ ComplianceCheckRAG/
 ├── k8s/
 │   ├── manifests.yaml
 │   └── cronjob-drift.yaml
+├── .devcontainer/
+│   ├── Dockerfile                    # python:3.11-slim + Node 24 + pip-tools
+│   └── devcontainer.json             # VS Code / Codespaces; postCreateCommand: make setup
+├── .claude/
+│   ├── agents/                       # Claude Code subagents
+│   │   ├── code-reviewer.md
+│   │   ├── dependency-reviewer.md
+│   │   ├── drift-analyst.md
+│   │   ├── mobile-tester.md
+│   │   ├── rag-evaluator.md
+│   │   └── security-scanner.md
+│   └── commands/                     # slash-command skills
+│       ├── ingest.md
+│       ├── scaffold.md
+│       ├── drift-run.md
+│       └── ship-check.md
 ├── .github/
 │   └── workflows/
 │       ├── backend-ci.yml
 │       └── frontend-ci.yml
+├── docs/
+│   ├── architecture.md               # multi-turn pipeline, component map
+│   ├── ingestion.md                  # PDF → chunk → ChromaDB deep-dive
+│   ├── monitoring.md                 # metrics, Grafana, drift detection
+│   ├── testing.md                    # test suite structure and fixtures
+│   ├── deployment.md                 # Docker Compose, K8s, CI/CD, env vars
+│   └── dependencies.md              # pip-compile workflow, npm pinning
+├── data/                             # Drop PDFs here — gitignored (PDFs only)
+│   ├── .gitkeep
+│   └── README.md
+├── llms-txt/                         # Generated per ingested doc — gitignored
+│   └── .gitkeep
 ├── docker-compose.yml
 ├── Dockerfile
 ├── Dockerfile.drift
-├── requirements.txt
+├── Makefile                          # dev workflow: setup, run, test, compile-deps
+├── pyproject.toml                    # requires-python, ruff config, pytest config
+├── requirements.in                   # direct deps — edit this, not requirements.txt
+├── requirements.txt                  # pip-compile output — fully pinned + annotated
+├── .python-version                   # pyenv pin: 3.11
+├── .env.example
 └── README.md
 ```
 
