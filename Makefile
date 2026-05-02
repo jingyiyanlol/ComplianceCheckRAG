@@ -105,10 +105,10 @@ setup: setup-backend setup-frontend ## Full first-time setup (backend + frontend
 	@echo "  5. Open http://localhost:5173"
 
 setup-backend: .python-check ## Install Python deps and spacy model
-	"$(PYTHON311)" -m venv $(VENV)
+	"$(PYTHON311)" -m venv --clear $(VENV)
 	$(PIP) install --quiet --upgrade pip
 	$(PIP) install -r requirements.txt
-	$(PYTHON) -m spacy download en_core_web_sm
+	$(PIP) install --quiet "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example — edit if needed")
 
 setup-frontend: .node-check ## Install frontend npm dependencies
