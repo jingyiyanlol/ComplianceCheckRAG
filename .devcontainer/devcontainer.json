@@ -1,0 +1,45 @@
+{
+  "name": "ComplianceCheckRAG Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // Mount the repo into /workspace (default for devcontainers)
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+
+  // Run `make setup` automatically after the container is created
+  "postCreateCommand": "make setup",
+
+  // Forward all service ports so the host browser can reach them
+  "forwardPorts": [8000, 5173, 8001, 9090, 3000, 9091],
+  "portsAttributes": {
+    "8000": { "label": "Backend (FastAPI)" },
+    "5173": { "label": "Frontend (Vite)" },
+    "8001": { "label": "ChromaDB" },
+    "9090": { "label": "Prometheus" },
+    "3000": { "label": "Grafana" },
+    "9091": { "label": "Pushgateway" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
+}
