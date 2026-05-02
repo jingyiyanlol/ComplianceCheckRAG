@@ -6,10 +6,11 @@ services:
     ports:
       - "11434:11434"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "sh", "-c", "timeout 5 bash -c '</dev/tcp/127.0.0.1/11434' && echo 'healthy' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 30s
 
   chromadb:
     image: chromadb/chroma:1.0.7
@@ -20,7 +21,7 @@ services:
     environment:
       - ANONYMIZED_TELEMETRY=false
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      test: ["CMD", "sh", "-c", "timeout 5 bash -c '</dev/tcp/127.0.0.1/8000' && echo 'healthy' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -87,6 +88,15 @@ services:
     image: prom/pushgateway:v1.11.1
     ports:
       - "9091:9091"
+
+  ollama-init:
+    image: curlimages/curl:latest
+    entrypoint: /bin/sh
+    command: -c "sleep 5 && curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"gemma3:1b\"}' && curl -X POST http://ollama:11434/api/pull -d '{\"name\":\"nomic-embed-text\"}' && echo 'Models pulled successfully'"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
 
   drift-job:
     build:

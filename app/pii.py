@@ -7,8 +7,21 @@ from presidio_anonymizer import AnonymizerEngine
 
 logger = logging.getLogger(__name__)
 
-_analyzer = AnalyzerEngine()
+# Initialize AnalyzerEngine lazily to avoid blocking on spacy model download
+_analyzer = None
 _anonymizer = AnonymizerEngine()
+
+
+def _get_analyzer() -> AnalyzerEngine:
+    """Lazily initialize the Presidio analyzer engine."""
+    global _analyzer
+    if _analyzer is None:
+        try:
+            _analyzer = AnalyzerEngine()
+        except Exception as e:
+            logger.error("Failed to initialize Presidio AnalyzerEngine: %s", e)
+            raise
+    return _analyzer
 
 _ENTITIES = [
     "PERSON",
@@ -38,7 +51,8 @@ def mask(text: str) -> tuple[str, list[dict]]:
     if not text.strip():
         return text, []
 
-    results = _analyzer.analyze(text=text, entities=_ENTITIES, language="en")
+    analyzer = _get_analyzer()
+    results = analyzer.analyze(text=text, entities=_ENTITIES, language="en")
     if not results:
         return text, []
 
