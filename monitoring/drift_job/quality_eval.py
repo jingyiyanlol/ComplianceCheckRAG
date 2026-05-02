@@ -125,7 +125,7 @@ def run(triggered_by: str, pipeline_version: str | None, window_hours: int) -> b
     logger.info("Running DeepEval on %d sampled messages...", len(messages))
     run_id = str(uuid.uuid4())
 
-    judge_model = OllamaModel(model="gemma3:4b-q4_0")
+    judge_model = OllamaModel(model="gemma3:1b")
     faithfulness_metric = FaithfulnessMetric(
         threshold=_THRESHOLD_FAITHFULNESS, model=judge_model, include_reason=True
     )

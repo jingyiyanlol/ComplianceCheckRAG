@@ -12,7 +12,7 @@ metadata:
   namespace: ccrag
 data:
   OLLAMA_BASE_URL: "http://ollama:11434"
-  LLM_MODEL: "gemma3:4b-q4_0"
+  LLM_MODEL: "gemma3:1b"
   EMBED_MODEL: "nomic-embed-text"
   CHROMA_MODE: "http"
   CHROMA_HOST: "chromadb"

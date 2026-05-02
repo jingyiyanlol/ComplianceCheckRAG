@@ -13,7 +13,7 @@ Demonstrate the full MLOps lifecycle for a RAG system: ingestion, serving, obser
 ### Backend
 - **Language**: Python 3.11
 - **Web framework**: FastAPI
-- **LLM**: Gemma 3 4B QAT via Ollama (`gemma3:4b-q4_0`); `gemma3:1b` for local dev
+- **LLM**: Gemma 3 1B via Ollama (`gemma3:1b`)
 - **Embeddings**: `nomic-embed-text` via Ollama
 - **Vector DB**: ChromaDB with metadata filtering
 - **PII masking**: Microsoft Presidio
@@ -72,15 +72,15 @@ Do not introduce LangChain, LlamaIndex, Redux, Arize Phoenix, or any paid servic
                                                              │
                          ┌───────────────────────────────────┤
                          ▼                                   ▼
-                  ┌────────────┐                  ┌────────────────────┐
-                  │ Prometheus │                  │  Drift job         │
-                  │ /metrics   │                  │  (nightly cron     │
-                  └────────────┘                  │  + CI trigger      │
-                         │                        │  + ad-hoc CLI)     │
-                         ▼                        │                    │
-                   ┌──────────┐                   │ DeepEval judge     │
+                  ┌────────────┐                   ┌────────────────────┐
+                  │ Prometheus │                   │  Drift job         │
+                  │ /metrics   │                   │  (nightly cron     │
+                  └────────────┘                   │  + CI trigger      │
+                         │                         │  + ad-hoc CLI)     │
+                         ▼                         │                    │
+                   ┌──────────┐                    │ DeepEval judge     │
                    │ Grafana  │<──drift metrics────│ Evidently stats    │
-                   │ 2 boards │                   └────────────────────┘
+                   │ 2 boards │                    └────────────────────┘
                    └──────────┘
 ```
 
@@ -365,7 +365,7 @@ All results write to `drift_runs` table and push breach gauges to Prometheus Pus
 from deepeval.models import OllamaModel
 from deepeval.metrics import FaithfulnessMetric, AnswerRelevancyMetric, ContextualPrecisionMetric
 
-judge_model = OllamaModel(model="gemma3:4b-q4_0")
+judge_model = OllamaModel(model="gemma3:1b")
 
 faithfulness = FaithfulnessMetric(threshold=0.7, model=judge_model, include_reason=True)
 answer_relevancy = AnswerRelevancyMetric(threshold=0.65, model=judge_model)

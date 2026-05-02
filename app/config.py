@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    llm_model: str = "gemma3:4b-q4_0"
+    llm_model: str = "gemma3:1b"
     embed_model: str = "nomic-embed-text"
 
     # ChromaDB
