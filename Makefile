@@ -152,7 +152,13 @@ compile-deps: ## Recompile requirements.txt from requirements.in (runs inside de
 # Test & lint
 # ---------------------------------------------------------------------------
 
-test: ## Run pytest
+test: ## Run pytest in Docker container (Python 3.11, all dependencies pinned)
+	docker build -q --target test -t ccrag-test -f Dockerfile .
+	docker run --rm \
+	  -v "$(CURDIR)":/workspace \
+	  ccrag-test
+
+test-local: ## Run pytest locally (requires Python 3.11 venv)
 	PYTHONPATH=. $(PYTEST) tests/ -v
 
 lint: ## Run ruff linter
@@ -161,7 +167,7 @@ lint: ## Run ruff linter
 lint-fix: ## Run ruff with auto-fix
 	$(RUFF) check . --fix
 
-check: lint test ## Run lint + tests
+check: lint test ## Run lint + tests (in Docker)
 
 # ---------------------------------------------------------------------------
 # Clean

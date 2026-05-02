@@ -330,9 +330,13 @@ FRONTEND_ORIGIN=http://localhost:5173
 
 ---
 
-## Development
+## Development Workflow
 
-The dev environment is containerised. All `make` targets below are meant to be run **inside the dev container** (VS Code terminal or `make dev-shell`).
+See [Complete Workflow & CI/CD Guide](docs/workflow-summary.md) for step-by-step instructions from local development through deployment.
+
+Quick reference for common tasks (run inside the dev container):
+
+### Environment setup
 
 ### Environment setup
 
@@ -537,6 +541,43 @@ kubectl apply -f k8s/cronjob-drift.yaml   # nightly drift at 02:00
 ```
 
 The drift CronJob mounts the telemetry PVC read-only and pushes breach gauges to Pushgateway.
+
+---
+
+## CI/CD (GitHub Actions)
+
+Two workflows automatically run on every push and PR to `main`:
+
+### Backend CI (`.github/workflows/backend-ci.yml`)
+
+**Lint & Test job:**
+- Runs ruff linter (Python code quality)
+- Runs pytest in Docker (ensures Python 3.11, all pinned deps, and greenlet compatibility)
+- Tests run against the `test` stage of the Dockerfile (not production image)
+
+**Build & Push job** (main branch only):
+- Builds backend Docker image from `Dockerfile` (runtime stage)
+- Pushes to GHCR as `ghcr.io/{repo}/backend:latest` and `ghcr.io/{repo}/backend:{sha}`
+
+**Drift Check job** (main branch only, on RAG component changes):
+- Triggers when `app/rag/`, `app/llm.py`, or `docker-compose.yml` changes
+- Runs drift detection job to catch quality regressions
+- Compares against baseline snapshot from pre-deploy
+
+### Frontend CI (`.github/workflows/frontend-ci.yml`)
+
+- Runs `npm run lint` on Node 24
+- Runs `npm run build` (fails if bundle gzip > 200KB)
+- Pushes frontend image to GHCR
+
+### Local equivalent
+
+Run before committing:
+```bash
+make check              # lint + tests (both in Docker)
+npm run lint            # frontend
+npm run build           # frontend
+```
 
 ---
 

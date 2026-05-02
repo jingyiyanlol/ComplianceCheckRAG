@@ -2,13 +2,28 @@
 
 ## Running the test suite
 
-All tests run inside the dev container where Python 3.11 and all dependencies are guaranteed.
+Tests run inside the **backend Docker container** (built from `Dockerfile`), which guarantees Python 3.11, all pinned dependencies, and a consistent environment matching production.
 
 ```bash
-make test          # pytest -v (recommended)
+make test          # Build backend image, run pytest (recommended)
+make test-local    # Run pytest locally (requires Python 3.11 venv)
 make lint          # ruff check
-make check         # lint + test in one shot
+make check         # lint + test in Docker (both in containers)
 ```
+
+### Docker-based testing (recommended)
+
+The `make test` target:
+1. Builds the backend Docker image from `Dockerfile` (tagged as `ccrag-backend`)
+2. Runs pytest inside a container from that image
+3. Mounts your workspace so test results are written back to your disk
+4. Cleans up the container afterward
+
+This ensures tests always run with Python 3.11 and exact production dependencies, avoiding local environment drift.
+
+### Local testing (for development iteration)
+
+If you need faster feedback during development, `make test-local` runs pytest in your local venv. **Requires Python 3.11.** If your venv uses Python 3.13 or later, greenlet will not install correctly — use `make test` (Docker) instead.
 
 Frontend checks:
 
@@ -68,6 +83,8 @@ tl._engine = engine
 tl._session_factory = session_factory
 ```
 
+The fixture also waits for any pending background tasks and cleanly disposes of the async engine to prevent event loop closure errors.
+
 | Test | What it checks |
 |---|---|
 | `test_create_conversation` | `get_or_create_conversation()` returns the conversation ID |
@@ -77,16 +94,25 @@ tl._session_factory = session_factory
 ### `test_telemetry.py`
 Verifies that the non-blocking telemetry background task actually writes to the database. This is the most subtle test in the suite.
 
-`log_message()` schedules an `asyncio.create_task()` and returns immediately — the write happens asynchronously. The test drains the event loop with `await asyncio.sleep(0)` five times to let the task complete, then queries the DB directly:
+`log_message()` schedules an `asyncio.create_task()` and returns immediately — the write happens asynchronously. The test waits for all pending background tasks to complete before querying the DB:
 
 ```python
 mid = tl.log_message(conversation_id="conv-db-1", role="assistant", content="...")
-for _ in range(5):
-    await asyncio.sleep(0)          # drain the background task
+
+# Wait for all pending tasks (the background write task) to complete
+pending = asyncio.all_tasks()
+current = asyncio.current_task()
+if pending and current:
+    other_tasks = [t for t in pending if t != current]
+    if other_tasks:
+        await asyncio.gather(*other_tasks, return_exceptions=True)
+
 async with isolated_db() as session:
     row = await session.get(Message, mid)
 assert row is not None
 ```
+
+**Why this pattern?** Just calling `await asyncio.sleep(0)` a few times does not guarantee the background task completes before the test queries the database. Using `asyncio.gather()` on all pending tasks ensures they all finish before proceeding.
 
 | Test | What it checks |
 |---|---|

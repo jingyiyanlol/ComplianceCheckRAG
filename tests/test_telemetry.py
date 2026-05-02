@@ -26,6 +26,16 @@ async def isolated_db(tmp_path):
 
     yield session_factory
 
+    # Wait for any pending background tasks before cleanup
+    await asyncio.sleep(0)
+    pending = asyncio.all_tasks()
+    current = asyncio.current_task()
+    if pending and current:
+        other_tasks = [t for t in pending if t != current and not t.done()]
+        if other_tasks:
+            await asyncio.gather(*other_tasks, return_exceptions=True)
+
+    # Restore original engine/factory and clean up
     tl._engine = original_engine
     tl._session_factory = original_factory
     await engine.dispose()
@@ -58,9 +68,14 @@ async def test_log_message_writes_to_db(isolated_db):
         llm_latency_ms=400,
     )
 
-    # Yield control several times to let the background task complete
-    for _ in range(5):
-        await asyncio.sleep(0)
+    # Wait for all pending tasks to complete (the background write task)
+    pending = asyncio.all_tasks()
+    current = asyncio.current_task()
+    if pending and current:
+        # Filter out the current test task and await the rest
+        other_tasks = [t for t in pending if t != current]
+        if other_tasks:
+            await asyncio.gather(*other_tasks, return_exceptions=True)
 
     async with isolated_db() as session:
         from sqlalchemy import select

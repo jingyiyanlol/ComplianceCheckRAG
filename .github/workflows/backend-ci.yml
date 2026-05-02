@@ -14,7 +14,10 @@ env:
 
 jobs:
   lint-test:
+    name: Lint & Test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
     steps:
       - uses: actions/checkout@v4
 
@@ -24,16 +27,17 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          python -m spacy download en_core_web_sm
+      - name: Install ruff
+        run: pip install ruff==0.11.9
 
       - name: Ruff lint
         run: ruff check .
 
-      - name: Pytest
-        run: pytest tests/ -v
+      - name: Run tests in Docker
+        run: |
+          # Tests run in Docker using the test stage of the Dockerfile
+          # This ensures Python 3.11, pinned dependencies, and greenlet compatibility
+          make test
 
   build-push:
     needs: lint-test
@@ -53,14 +57,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set image name to lowercase
+        run: echo "IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ github.sha }}
 
   drift-check:
     needs: build-push

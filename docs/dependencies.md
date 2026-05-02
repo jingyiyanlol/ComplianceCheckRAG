@@ -14,7 +14,7 @@ Python dependencies use a two-file workflow powered by [pip-tools](https://pip-t
 ### Adding or upgrading a package
 
 1. Edit `requirements.in` — add or update the `>=` bound
-2. Recompile inside the dev container:
+2. **Optional:** Recompile manually inside the dev container (the pre-commit hook will do this automatically):
    ```bash
    make compile-deps
    ```
@@ -26,6 +26,27 @@ Python dependencies use a two-file workflow powered by [pip-tools](https://pip-t
    ```bash
    make check
    ```
+
+### Automatic recompilation (pre-commit hook)
+
+A git pre-commit hook (`.git/hooks/pre-commit`) automatically regenerates `requirements.txt` whenever `requirements.in` is staged for commit. This ensures the lockfile and source file stay in sync.
+
+See [Pre-commit Hook Documentation](pre-commit-hook.md) for detailed usage and troubleshooting.
+
+**The hook:**
+- Detects if `requirements.in` is in the staging area
+- Runs `make compile-deps` (which executes `pip-compile` inside the dev container, guaranteeing Python 3.11 and correct dependencies)
+- Stages the regenerated `requirements.txt` automatically
+- Blocks the commit if compilation fails (e.g., due to unresolvable version constraints)
+
+**Example:**
+```bash
+git add requirements.in
+git commit -m "Add greenlet dependency"
+# Hook automatically regenerates and stages requirements.txt
+```
+
+**Note:** The hook requires Docker to be running.
 
 ### How `compile-deps` works
 

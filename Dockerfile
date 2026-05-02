@@ -7,7 +7,19 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && python -m spacy download en_core_web_sm
 
-# ---- runtime ----
+# ---- test stage (runs as root for pytest compatibility) ----
+FROM python:3.11-slim AS test
+
+WORKDIR /workspace
+
+COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Don't set a user — pytest needs write access to the mounted workspace
+ENTRYPOINT ["python", "-m", "pytest"]
+CMD ["tests/", "-v"]
+
+# ---- runtime (default stage when no --target specified) ----
 FROM python:3.11-slim
 
 RUN groupadd -r raguser && useradd -r -g raguser raguser
