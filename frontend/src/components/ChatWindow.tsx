@@ -54,7 +54,7 @@ export function ChatWindow({
     [conversation.id, onUpdateMessage]
   );
 
-  const { send, cancel } = useStreamingChat({
+  const { send, cancel: _cancel } = useStreamingChat({
     conversationId: conversation.id,
     docFilter: conversation.docFilter,
     history: conversation.messages,

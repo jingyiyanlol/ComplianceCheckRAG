@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Capture a pre-deploy baseline snapshot of pipeline quality metrics.
 
 Run this BEFORE deploying any change to the RAG pipeline so the post-deploy
@@ -8,6 +6,8 @@ drift job has a reference window to compare against.
 Usage:
     python monitoring/drift_job/snapshot.py --pipeline-version $(git rev-parse --short HEAD)
 """
+
+from __future__ import annotations
 
 import argparse
 import json

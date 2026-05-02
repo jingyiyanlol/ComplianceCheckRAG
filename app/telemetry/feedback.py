@@ -4,8 +4,6 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.telemetry.logger import _session_factory
 from app.telemetry.schema import Feedback
 

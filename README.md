@@ -493,7 +493,8 @@ ComplianceCheckRAG/
 │   ├── ingestion.md          # PDF → chunk → ChromaDB pipeline deep-dive
 │   ├── monitoring.md         # Prometheus metrics, Grafana, drift detection
 │   ├── testing.md            # test suite structure, fixtures, coverage gaps
-│   └── deployment.md         # Docker Compose, K8s, CI/CD, env vars
+│   ├── deployment.md         # Docker Compose, K8s, CI/CD, env vars
+│   └── dependencies.md       # pip-tools + npm dependency workflow
 ├── data/                     # Drop PDFs here — gitignored (PDFs only)
 │   ├── .gitkeep
 │   └── README.md             # ingestion instructions

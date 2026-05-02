@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Embedding cosine drift and PSI on response length distribution.
 
 Compares response embeddings from the last window_hours against a 7-day
 reference. Alerts if mean pairwise cosine similarity drops by more than 0.05.
 Also computes PSI on response_length distribution.
 """
+
+from __future__ import annotations
 
 import json
 import logging

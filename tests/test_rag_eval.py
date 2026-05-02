@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import pytest
-from app.rag.chunking import chunk_doc, extract_doc, ExtractedDoc
+from app.rag.chunking import ExtractedDoc, chunk_doc
 
 
 def test_chunk_doc_empty_sections():

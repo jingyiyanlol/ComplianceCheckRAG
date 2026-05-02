@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Drift detection job entrypoint.
 
 Usage:
@@ -7,6 +5,8 @@ Usage:
     python monitoring/drift_job/run_drift.py --trigger cron
     python monitoring/drift_job/run_drift.py --trigger ci --pipeline-version <sha>
 """
+
+from __future__ import annotations
 
 import argparse
 import logging

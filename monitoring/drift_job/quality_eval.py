@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """DeepEval quality evaluation using a local Ollama judge.
 
 Samples up to 100 assistant messages from the last window_hours, runs
 faithfulness, answer relevance, and context precision metrics, and writes
 scores to the eval_results table.
 """
+
+from __future__ import annotations
 
 import json
 import logging

@@ -10,7 +10,7 @@ interface MessageListProps {
   onFeedback: (messageId: string, rating: FeedbackRating) => void;
 }
 
-export function MessageList({ conversationId, messages, onFeedback }: MessageListProps) {
+export function MessageList({ conversationId: _conversationId, messages, onFeedback }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);

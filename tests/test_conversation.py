@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 import sqlalchemy.ext.asyncio as sa
 
+from app.conversation import get_conversation_history, get_or_create_conversation
 from app.telemetry import logger as tl
 from app.telemetry.schema import Base
-from app.conversation import get_or_create_conversation, get_conversation_history
 
 
 @pytest.fixture(autouse=True)

@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Feedback thumbs-down ratio trend analysis.
 
 Compares the thumbs-down ratio from the last window_hours against the 7-day
 baseline. Alerts if the ratio doubles.
 """
+
+from __future__ import annotations
 
 import json
 import logging

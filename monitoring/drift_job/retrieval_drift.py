@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Evidently KS test on retrieval score distributions.
 
 Compares top-1 retrieval scores from the last window_hours against a 7-day
 reference window. Alerts if Kolmogorov-Smirnov p-value < 0.01.
 """
+
+from __future__ import annotations
 
 import json
 import logging
