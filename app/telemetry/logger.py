@@ -142,19 +142,24 @@ def log_message(
         The message_id used for this row (for linking feedback later).
     """
     mid = message_id or str(uuid.uuid4())
-    asyncio.create_task(
-        _write_message(
-            message_id=mid,
-            conversation_id=conversation_id,
-            role=role,
-            content=content,
-            rewritten_query=rewritten_query,
-            retrieved_chunks=retrieved_chunks,
-            retrieval_latency_ms=retrieval_latency_ms,
-            llm_latency_ms=llm_latency_ms,
-            response_embedding=response_embedding,
-            query_embedding=query_embedding,
-            pii_entities=pii_entities,
+    try:
+        asyncio.create_task(
+            _write_message(
+                message_id=mid,
+                conversation_id=conversation_id,
+                role=role,
+                content=content,
+                rewritten_query=rewritten_query,
+                retrieved_chunks=retrieved_chunks,
+                retrieval_latency_ms=retrieval_latency_ms,
+                llm_latency_ms=llm_latency_ms,
+                response_embedding=response_embedding,
+                query_embedding=query_embedding,
+                pii_entities=pii_entities,
+            )
         )
-    )
+    except RuntimeError:
+        # If no event loop is running, silently skip the background write.
+        # This can happen in tests or when called from a non-async context.
+        logger.debug(f"Could not schedule telemetry write for message {mid}: no running event loop")
     return mid
