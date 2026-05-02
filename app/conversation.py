@@ -6,9 +6,8 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.telemetry.logger import _session_factory
+from app.telemetry import logger as _tl
 from app.telemetry.schema import Conversation, Message
 
 logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ async def get_or_create_conversation(
         The conversation_id (unchanged).
     """
     now = datetime.now(timezone.utc)
-    async with _session_factory() as session:
+    async with _tl._session_factory() as session:
         conv = await session.get(Conversation, conversation_id)
         if conv is None:
             conv = Conversation(
@@ -51,7 +50,7 @@ async def get_conversation_history(conversation_id: str) -> list[dict]:
     Returns:
         List of dicts with keys: id, role, content, created_at (ISO string).
     """
-    async with _session_factory() as session:
+    async with _tl._session_factory() as session:
         stmt = (
             select(Message)
             .where(Message.conversation_id == conversation_id)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -7,7 +8,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -119,7 +120,11 @@ async def chat(req: ChatRequest) -> StreamingResponse:
     for entity in pii_entities:
         ccrag_pii_hits_total.labels(entity_type=entity["entity_type"]).inc()
 
-    history = [{"role": m.role, "content": m.content} for m in req.history]
+    # Mask PII in history before any LLM call (rewrite + generate)
+    history = [
+        {"role": m.role, "content": mask(m.content)[0]}
+        for m in req.history
+    ]
     message_id = str(uuid.uuid4())
 
     async def event_stream() -> AsyncGenerator[str, None]:
@@ -127,13 +132,12 @@ async def chat(req: ChatRequest) -> StreamingResponse:
         rewritten = await rewrite_query(history, masked_query)
 
         retrieval_start = time.monotonic()
-        chunks, query_embedding = retrieve(rewritten, doc_filter=req.doc_filter)
+        chunks, query_embedding = await retrieve(rewritten, doc_filter=req.doc_filter)
         retrieval_ms = int((time.monotonic() - retrieval_start) * 1000)
 
         ccrag_retrieval_latency_seconds.observe(retrieval_ms / 1000)
         ccrag_chunks_retrieved.observe(len(chunks))
 
-        # Emit citations as first SSE event so the UI can render them immediately
         citations = [
             {
                 "chunk_id": c["chunk_id"],
@@ -160,11 +164,10 @@ async def chat(req: ChatRequest) -> StreamingResponse:
         ccrag_query_latency_seconds.observe(total_ms / 1000)
         ccrag_query_total.labels(status="success").inc()
 
-        yield "event: done\ndata: {}\n\n"
-
         response_text = "".join(full_response)
 
-        # Non-blocking telemetry — fire-and-forget
+        # Fire telemetry BEFORE yielding done so it is scheduled even if the
+        # client closes the connection immediately after receiving done.
         log_message(
             message_id=message_id,
             conversation_id=req.conversation_id,
@@ -185,6 +188,8 @@ async def chat(req: ChatRequest) -> StreamingResponse:
             query_embedding=query_embedding,
             pii_entities=pii_entities,
         )
+
+        yield "event: done\ndata: {}\n\n"
 
     return StreamingResponse(
         event_stream(),
@@ -239,9 +244,8 @@ async def list_documents() -> dict:
     """
     from app.rag.ingest import _chroma_client, _get_collection
 
-    client = _chroma_client()
-    collection = _get_collection(client)
-    result = collection.get(include=["metadatas"])
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, lambda: _get_collection(_chroma_client()).get(include=["metadatas"]))
     names = sorted({m.get("doc_name", "") for m in result["metadatas"] if m.get("doc_name")})
     return {"documents": names}
 
@@ -253,10 +257,8 @@ async def trigger_ingest() -> dict:
     Returns:
         Dict with status message.
     """
-    import asyncio
-
     from app.rag.ingest import main as ingest_main
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, ingest_main)
     return {"status": "ingestion complete"}

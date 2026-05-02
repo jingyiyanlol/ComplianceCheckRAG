@@ -14,6 +14,21 @@ from app.rag.chunking import Chunk, ExtractedDoc, chunk_doc, extract_doc
 
 logger = logging.getLogger(__name__)
 
+# Module-level cached Ollama client — respects settings.ollama_base_url
+_ollama_client: ollama.Client | None = None
+
+
+def _get_ollama_client() -> ollama.Client:
+    """Return a cached Ollama sync client.
+
+    Returns:
+        A shared ollama.Client instance configured with settings.ollama_base_url.
+    """
+    global _ollama_client
+    if _ollama_client is None:
+        _ollama_client = ollama.Client(host=settings.ollama_base_url)
+    return _ollama_client
+
 
 # ---------------------------------------------------------------------------
 # ChromaDB client
@@ -64,7 +79,7 @@ def _embed(texts: list[str]) -> list[list[float]]:
     Returns:
         List of float vectors, one per input text.
     """
-    response = ollama.embed(model=settings.embed_model, input=texts)
+    response = _get_ollama_client().embed(model=settings.embed_model, input=texts)
     return response.embeddings
 
 
@@ -179,11 +194,9 @@ def ingest_pdf(pdf_path: Path, collection: chromadb.Collection, pipeline_version
     _write_llms_txt(extracted, doc_name=doc_name, pipeline_version=pipeline_version)
 
     elapsed = time.monotonic() - start
-    print(
-        f"\nIngested:           {doc_name}\n"
-        f"Chunks:             {upserted}\n"
-        f"Skipped (unchanged):{skipped}\n"
-        f"Time:               {elapsed:.1f}s"
+    logger.info(
+        "Ingested: %s | chunks: %d | skipped: %d | time: %.1fs",
+        doc_name, upserted, skipped, elapsed,
     )
 
 
@@ -207,6 +220,7 @@ def _run_post_ingest_drift() -> None:
             "--window-hours", "1",
         ],
         capture_output=False,
+        timeout=300,
     )
     if result.returncode != 0:
         logger.warning("Post-ingest drift check exited with code %d", result.returncode)
@@ -225,10 +239,10 @@ def main() -> None:
     pdfs = sorted(data_dir.glob("*.pdf"))
 
     if not pdfs:
-        print(f"No PDFs found in {data_dir}/. Add documents and retry.")
+        logger.info("No PDFs found in %s/. Add documents and retry.", data_dir)
         return
 
-    print(f"Found {len(pdfs)} PDF(s) to ingest. Pipeline version: {pipeline_version}\n")
+    logger.info("Found %d PDF(s) to ingest. Pipeline version: %s", len(pdfs), pipeline_version)
 
     client = _chroma_client()
     collection = _get_collection(client)
@@ -242,9 +256,9 @@ def main() -> None:
             errors.append(str(exc))
 
     if errors:
-        print(f"\n{len(errors)} document(s) failed to ingest:")
+        logger.warning("%d document(s) failed to ingest:", len(errors))
         for e in errors:
-            print(f"  - {e}")
+            logger.warning("  - %s", e)
 
     _run_post_ingest_drift()
 

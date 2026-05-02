@@ -58,6 +58,11 @@ async def _write_message(
 ) -> None:
     """Internal coroutine that writes a message row to SQLite.
 
+    Assumes the parent Conversation row already exists (created by
+    get_or_create_conversation in the request path). Only updates
+    updated_at on the conversation — never creates it — to avoid
+    overwriting doc_filter with None.
+
     Args:
         message_id: UUID for the new message row.
         conversation_id: Parent conversation UUID.
@@ -76,17 +81,10 @@ async def _write_message(
     """
     now = datetime.now(timezone.utc)
     async with _session_factory() as session:
-        # Upsert conversation row
+        # Only update updated_at — never create or overwrite doc_filter.
+        # get_or_create_conversation() is always called first in the request path.
         conv = await session.get(Conversation, conversation_id)
-        if conv is None:
-            conv = Conversation(
-                id=conversation_id,
-                doc_filter=None,
-                created_at=now,
-                updated_at=now,
-            )
-            session.add(conv)
-        else:
+        if conv is not None:
             conv.updated_at = now
 
         msg = Message(
