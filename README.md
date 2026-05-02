@@ -1,8 +1,9 @@
+[![Backend CI](https://github.com/jingyiyanlol/ComplianceCheckRAG/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/jingyiyanlol/ComplianceCheckRAG/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/jingyiyanlol/ComplianceCheckRAG/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/jingyiyanlol/ComplianceCheckRAG/actions/workflows/frontend-ci.yml)
+
 # ComplianceCheckRAG
 
 A self-hosted, multi-turn RAG application for highly secure teams to check on compliance against a knowledge-base, e.g. for bank compliance teams. Users can ask questions across regulatory documents and get cited, streamed answers via a mobile-friendly chat UI — with a full MLOps monitoring pipeline built in.
-
-Current stack: No LangChain. No LlamaIndex. Plain Python orchestration.
 
 ---
 
@@ -23,7 +24,7 @@ Current stack: No LangChain. No LlamaIndex. Plain Python orchestration.
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.11, FastAPI, SQLAlchemy, aiosqlite |
-| LLM | Gemma 3 4B QAT (`gemma3:4b-q4_0`) via Ollama |
+| LLM | Gemma 3 1B (`gemma3:1b`) via Ollama |
 | Embeddings | `nomic-embed-text` via Ollama |
 | Vector DB | ChromaDB with metadata filtering |
 | PII masking | Microsoft Presidio |
@@ -68,15 +69,15 @@ Current stack: No LangChain. No LlamaIndex. Plain Python orchestration.
                                                              │
                          ┌───────────────────────────────────┤
                          ▼                                   ▼
-                  ┌────────────┐                  ┌────────────────────┐
-                  │ Prometheus │                  │  Drift job         │
-                  │ /metrics   │                  │  (nightly cron     │
-                  └────────────┘                  │  + CI trigger      │
-                         │                        │  + ad-hoc CLI)     │
-                         ▼                        │                    │
-                   ┌──────────┐                   │ DeepEval judge     │
+                  ┌────────────┐                   ┌────────────────────┐
+                  │ Prometheus │                   │  Drift job         │
+                  │ /metrics   │                   │  (nightly cron     │
+                  └────────────┘                   │  + CI trigger      │
+                         │                         │  + ad-hoc CLI)     │
+                         ▼                         │                    │
+                   ┌──────────┐                    │ DeepEval judge     │
                    │ Grafana  │<──drift metrics────│ Evidently stats    │
-                   │ 2 boards │                   └────────────────────┘
+                   │ 2 boards │                    └────────────────────┘
                    └──────────┘
 ```
 
@@ -93,33 +94,97 @@ Current stack: No LangChain. No LlamaIndex. Plain Python orchestration.
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- Ollama running locally with `gemma3:4b-q4_0` and `nomic-embed-text` pulled
+| Requirement | Purpose |
+|---|---|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose v2) | Dev container, app services, drift job |
+| [Ollama](https://ollama.com) running on the host | LLM inference and embeddings |
+| [VS Code](https://code.visualstudio.com) + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Recommended dev workflow (optional — see CLI alternative below) |
+
+Pull the required Ollama models once:
 
 ```bash
-ollama pull gemma3:4b-q4_0
-ollama pull nomic-embed-text
+ollama pull gemma3:1b         # generation + query rewriting
+ollama pull nomic-embed-text  # embeddings
 ```
 
-### 1. Clone and configure
+---
+
+### Option A — VS Code Dev Container (recommended)
+
+The dev container ships **Python 3.11 + Node 24** on a Debian Linux base. No local Python or Node install needed.
+
+**1. Clone and open**
 
 ```bash
 git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
-cd ComplianceCheckRAG
-cp .env.example .env
-# Edit .env if needed — defaults work for local Docker Compose
+code ComplianceCheckRAG
 ```
 
-### 2. Add your PDFs
+VS Code will detect `.devcontainer/devcontainer.json` and prompt:
+> "Folder contains a Dev Container configuration file. Reopen in Container?"
+
+Click **Reopen in Container**. The image builds once (~2 min), then `make setup` runs automatically inside it.
+
+**2. Configure environment**
+
+The setup step creates `.env` from `.env.example` if it doesn't exist. Edit it if your Ollama URL or model name differs from the defaults.
+
+**3. Add your PDFs**
 
 ```bash
 cp your-regulatory-docs/*.pdf data/
 ```
 
-### 3. Start services
+**4. Ingest documents**
+
+Open a terminal inside the container (VS Code terminal is already inside it):
 
 ```bash
+make ingest
+```
+
+**5. Start the app**
+
+```bash
+make backend    # terminal 1 — FastAPI at http://localhost:8000
+make frontend   # terminal 2 — Vite dev server at http://localhost:5173
+```
+
+Port forwarding is configured automatically. Open http://localhost:5173 in your host browser.
+
+---
+
+### Option B — CLI dev container (no VS Code)
+
+```bash
+git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
+cd ComplianceCheckRAG
+make dev-shell        # builds the dev container image and drops into bash
+```
+
+Inside the container shell:
+
+```bash
+make setup            # creates .venv, installs Python + npm deps, downloads spacy model
+cp .env.example .env  # edit as needed
+cp your-docs/*.pdf data/
+make ingest
+make backend &        # background or split a second shell with: docker exec -it <container> bash
+make frontend
+```
+
+---
+
+### Option C — Full Docker Compose stack (production-like)
+
+Runs all services (backend, frontend, ChromaDB, Prometheus, Grafana, Pushgateway) as containers. No dev container needed.
+
+```bash
+git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
+cd ComplianceCheckRAG
+cp .env.example .env  # edit if needed — defaults work for local Compose
 docker compose up -d
+docker compose exec backend python -m app.rag.ingest
 ```
 
 Services started:
@@ -129,16 +194,6 @@ Services started:
 - `prometheus` → http://localhost:9090
 - `grafana` → http://localhost:3000 (admin/admin)
 - `pushgateway` → http://localhost:9091
-
-### 4. Ingest documents
-
-```bash
-docker compose exec backend python -m app.rag.ingest
-```
-
-This extracts text, chunks by section, embeds with `nomic-embed-text`, upserts into ChromaDB, and generates `llms-txt/` artifacts. Re-ingestion is idempotent.
-
-### 5. Open the UI
 
 Navigate to http://localhost:5173. On first conversation, choose which documents to search (or search all). Ask away.
 
@@ -221,54 +276,120 @@ The post-deploy drift run compares against this snapshot.
 
 ## Configuration
 
-All settings are read from environment variables via `app/config.py` (pydantic-settings). Copy `.env.example` and adjust:
+All settings are read from environment variables via `app/config.py` (pydantic-settings).
 
-| Variable | Default | Description |
-|---|---|---|
-| `OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama service URL |
-| `LLM_MODEL` | `gemma3:4b-q4_0` | Model for generation and rewriting |
-| `EMBED_MODEL` | `nomic-embed-text` | Model for embeddings |
-| `CHROMA_HOST` | `chromadb` | ChromaDB host |
-| `CHROMA_PORT` | `8001` | ChromaDB port |
-| `CHROMA_AUTH_TOKEN` | _(empty)_ | Optional auth token |
-| `TELEMETRY_DB_PATH` | `telemetry.db` | SQLite telemetry database path |
-| `LOG_LEVEL` | `INFO` | Logging level |
-| `FRONTEND_ORIGIN` | `http://localhost:5173` | CORS allowed origin |
+### Setup
 
-For local dev with a smaller model, set `LLM_MODEL=gemma3:1b`.
+```bash
+cp .env.example .env
+# Edit .env to match your local setup
+```
+
+### `.env` format
+
+```dotenv
+# Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=gemma3:1b
+EMBED_MODEL=nomic-embed-text
+
+# ChromaDB
+# "local" = PersistentClient on disk (no Docker needed for dev)
+# "http"  = connects to a running ChromaDB server (Docker / K8s)
+CHROMA_MODE=local
+CHROMA_LOCAL_PATH=.chroma          # only used when CHROMA_MODE=local
+CHROMA_HOST=localhost              # only used when CHROMA_MODE=http
+CHROMA_PORT=8001                   # only used when CHROMA_MODE=http
+CHROMA_AUTH_TOKEN=                 # optional bearer token for ChromaDB
+CHROMA_COLLECTION=compliance_docs
+
+# Telemetry
+TELEMETRY_DB_PATH=telemetry.db
+
+# App
+LOG_LEVEL=INFO
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+### Variable reference
+
+| Variable | Local default | Production default | Description |
+|---|---|---|---|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | `http://ollama:11434` | Ollama service URL |
+| `LLM_MODEL` | `gemma3:1b` | `gemma3:1b` | Model for generation and query rewriting |
+| `EMBED_MODEL` | `nomic-embed-text` | `nomic-embed-text` | Model for embeddings |
+| `CHROMA_MODE` | `local` | `http` | `local` = PersistentClient; `http` = server |
+| `CHROMA_LOCAL_PATH` | `.chroma` | — | On-disk path for local ChromaDB |
+| `CHROMA_HOST` | `localhost` | `chromadb` | ChromaDB host (http mode only) |
+| `CHROMA_PORT` | `8001` | `8000` | ChromaDB port (http mode only) |
+| `CHROMA_AUTH_TOKEN` | _(empty)_ | _(empty)_ | Optional ChromaDB bearer token |
+| `CHROMA_COLLECTION` | `compliance_docs` | `compliance_docs` | ChromaDB collection name |
+| `TELEMETRY_DB_PATH` | `telemetry.db` | `/telemetry/telemetry.db` | SQLite telemetry DB path |
+| `LOG_LEVEL` | `INFO` | `INFO` | Python logging level |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | your domain | CORS allowed origin |
 
 ---
 
 ## Development
 
-### Backend
+The dev environment is containerised. All `make` targets below are meant to be run **inside the dev container** (VS Code terminal or `make dev-shell`).
+
+### Environment setup
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-uvicorn app.main:app --reload
+make setup          # first-time: creates .venv, installs all deps, downloads spacy model
+                    # (runs automatically in VS Code Dev Containers via postCreateCommand)
 ```
 
-### Frontend
+### Running the app
 
 ```bash
-cd frontend
-npm install
-npm run dev   # proxies /api/* to backend at localhost:8000
+make backend        # FastAPI with --reload at http://localhost:8000
+make frontend       # Vite dev server at http://localhost:5173 (proxies /api/* to backend)
 ```
 
-### Tests
+### Ingestion
 
 ```bash
-# Backend
-ruff check .
-pytest
+cp your-docs/*.pdf data/
+make ingest         # extract → chunk → embed → upsert ChromaDB → generate llms-txt/
+```
 
-# Frontend
-cd frontend
-npm run lint
-npm run build
+Re-ingestion is idempotent — keyed on `(doc_name, chunk_index, content_hash)`.
+
+### Tests and lint
+
+```bash
+make check          # ruff lint + pytest in one shot
+
+make lint           # ruff check only
+make lint-fix       # ruff --fix
+make test           # pytest -v
+```
+
+Frontend checks (run from the repo root inside the container):
+
+```bash
+cd frontend && npm run lint
+cd frontend && npm run build
+```
+
+### Makefile reference
+
+```
+make help           # full target list with descriptions
+make setup          # install all deps (backend + frontend)
+make setup-backend  # Python venv + pip + spacy model only
+make setup-frontend # npm ci only
+make dev-shell      # build dev container image and open a bash shell (no VS Code needed)
+make backend        # start FastAPI
+make frontend       # start Vite
+make ingest         # run ingestion pipeline
+make test           # pytest
+make lint           # ruff
+make check          # lint + test
+make clean          # remove .chroma/, telemetry.db, llms-txt/*.md, caches
+make clean-all      # clean + remove .venv and node_modules
 ```
 
 ---
@@ -311,6 +432,9 @@ ComplianceCheckRAG/
 │   ├── hooks/                # useConversation, useStreamingChat, useLocalStorage
 │   ├── lib/api.ts            # all fetch calls
 │   └── types.ts
+├── .devcontainer/
+│   ├── Dockerfile            # python:3.11-slim + Node 24 — canonical dev environment
+│   └── devcontainer.json     # VS Code / Codespaces config; runs make setup on create
 ├── data/                     # Drop PDFs here — gitignored
 ├── llms-txt/                 # Generated markdown artifacts per ingested doc
 ├── tests/
@@ -319,6 +443,7 @@ ComplianceCheckRAG/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── Dockerfile.drift
+├── Makefile
 └── .env.example
 ```
 
