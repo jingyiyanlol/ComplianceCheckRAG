@@ -2,6 +2,10 @@
 data/*.pdf
 llms-txt/
 
+# Persistent volumes (keep directory structure with .gitkeep only)
+volumes/*/
+!volumes/**/.gitkeep
+
 # Telemetry database
 telemetry.db
 

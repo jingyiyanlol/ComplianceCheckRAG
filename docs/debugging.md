@@ -41,7 +41,7 @@ docker compose ps          # shows Status (running / healthy / exiting)
 
 # Manual health probes (same checks the containers run internally)
 curl -f http://localhost:8000/health         # backend
-curl -f http://localhost:8001/api/v1/heartbeat  # chromadb
+curl -f http://localhost:8001/api/v2/heartbeat  # chromadb
 curl -f http://localhost:11434/api/tags      # ollama
 ```
 
