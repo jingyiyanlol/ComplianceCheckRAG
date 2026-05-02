@@ -31,6 +31,7 @@ pymupdf>=1.25.5
 # Database / ORM
 sqlalchemy>=2.0.41
 aiosqlite>=0.21.0
+greenlet>=3.5.0  # Required for SQLAlchemy async operations
 
 # Testing & dev tooling (also installed in prod image for CI — kept in one file for simplicity)
 pytest>=8.3.5
