@@ -20,6 +20,14 @@ RUN useradd -m -s /bin/bash dev
 # It is NOT listed in requirements.in — it is a dev container concern only.
 RUN pip install --no-cache-dir pip-tools
 
+# Project Python dependencies — installed at system level so the dev container
+# works out of the box without a separate venv or `make setup-backend`.
+# Copy only the lockfile so Docker layer caching is invalidated only when deps change.
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && pip install --no-cache-dir \
+       "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+
 USER dev
 
 # Ensure ~/.local/bin (where pip installs user scripts) is on PATH
