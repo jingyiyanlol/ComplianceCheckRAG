@@ -1,0 +1,9 @@
+evidently==0.6.7
+deepeval==2.6.7
+sqlalchemy==2.0.41
+aiosqlite==0.21.0
+numpy==2.2.5
+scipy==1.15.3
+ollama==0.4.8
+pydantic==2.11.4
+pydantic-settings==2.9.1

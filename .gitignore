@@ -1,0 +1,34 @@
+# PDFs and generated artifacts
+data/*.pdf
+llms-txt/
+
+# Telemetry database
+telemetry.db
+
+# Local ChromaDB data (dev mode)
+.chroma/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Docker
+*.log
+
+# macOS
+.DS_Store

@@ -1,0 +1,99 @@
+{
+  "title": "Model Quality",
+  "uid": "ccrag-model-quality",
+  "schemaVersion": 38,
+  "refresh": "5m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Drift Breach Status",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 4 },
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "red", "value": 1 }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "ccrag_drift_breach",
+          "legendFormat": "{{metric_name}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Faithfulness Score (mean, 24h rolling)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "min": 0, "max": 1, "thresholds": { "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 0.6 }, { "color": "green", "value": 0.7 }] } }
+      },
+      "targets": [
+        {
+          "expr": "avg_over_time(ccrag_drift_breach{metric_name='faithfulness_mean'}[24h])",
+          "legendFormat": "faithfulness"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Answer Relevance Score (mean, 24h rolling)",
+      "type": "timeseries",
+      "gridPos": { "x": 8, "y": 4, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "min": 0, "max": 1 }
+      },
+      "targets": [
+        {
+          "expr": "avg_over_time(ccrag_drift_breach{metric_name='answer_relevance_mean'}[24h])",
+          "legendFormat": "answer_relevance"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Context Precision Score (mean, 24h rolling)",
+      "type": "timeseries",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "fieldConfig": {
+        "defaults": { "min": 0, "max": 1 }
+      },
+      "targets": [
+        {
+          "expr": "avg_over_time(ccrag_drift_breach{metric_name='context_precision_mean'}[24h])",
+          "legendFormat": "context_precision"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Retrieval KS p-value (drift signal)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "ccrag_drift_breach{metric_name='retrieval_ks_pvalue'}",
+          "legendFormat": "KS p-value breach"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Feedback Thumbs-Down Ratio",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(ccrag_feedback_total{rating='-1'}[1h]) / rate(ccrag_feedback_total[1h])",
+          "legendFormat": "thumbs-down ratio"
+        }
+      ]
+    }
+  ]
+}

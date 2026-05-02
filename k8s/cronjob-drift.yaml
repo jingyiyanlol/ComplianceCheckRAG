@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-job
+  namespace: ccrag
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: drift-job
+              image: ghcr.io/jingyiyanlol/compliancecheckrag/drift-job:latest
+              args: ["--trigger", "cron"]
+              env:
+                - name: TELEMETRY_DB_PATH
+                  value: /telemetry/telemetry.db
+                - name: OLLAMA_BASE_URL
+                  value: http://ollama:11434
+              volumeMounts:
+                - name: telemetry
+                  mountPath: /telemetry
+                  readOnly: true
+          volumes:
+            - name: telemetry
+              persistentVolumeClaim:
+                claimName: telemetry-pvc
+                readOnly: true

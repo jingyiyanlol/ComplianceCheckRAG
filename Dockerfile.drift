@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+RUN groupadd -r driftuser && useradd -r -g driftuser driftuser
+
+WORKDIR /app
+
+COPY monitoring/drift_job/requirements.drift.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.drift.txt
+
+COPY monitoring/drift_job/ ./monitoring/drift_job/
+COPY app/config.py ./app/config.py
+COPY app/__init__.py ./app/__init__.py
+
+RUN chown -R driftuser:driftuser /app
+USER driftuser
+
+ENTRYPOINT ["python", "monitoring/drift_job/run_drift.py"]

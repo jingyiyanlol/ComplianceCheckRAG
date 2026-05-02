@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(pytest:*)",
+      "Bash(pip install:*)",
+      "Bash(pip-audit:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker build:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm create:*)",
+      "Bash(npx:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl get:*)",
+      "Bash(curl http://localhost:*)",
+      "Bash(ollama list)",
+      "Bash(ollama pull:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(rm -rf:*)",
+      "Bash(npm publish:*)"
+    ]
+  }
+}
