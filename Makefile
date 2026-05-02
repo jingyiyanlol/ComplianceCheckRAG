@@ -1,12 +1,23 @@
-.PHONY: help setup setup-backend setup-frontend backend frontend ingest \
-        test lint lint-fix check clean clean-all dev-shell
+.PHONY: help setup setup-backend setup-frontend install-hooks backend frontend ingest \
+        test test-local lint lint-fix check clean clean-all dev-shell
 
 VENV    := .venv
-PYTHON  := $(VENV)/bin/python
-PIP     := $(VENV)/bin/pip
-UVICORN := $(VENV)/bin/uvicorn
-PYTEST  := $(VENV)/bin/pytest
-RUFF    := $(VENV)/bin/ruff
+
+# If running inside the dev container (no .venv needed — deps in system Python),
+# fall back to system python3/pip3. Otherwise use the local .venv.
+ifeq ($(wildcard $(VENV)/bin/python),)
+  PYTHON  := python3
+  PIP     := pip3
+  UVICORN := python3 -m uvicorn
+  PYTEST  := python3 -m pytest
+  RUFF    := python3 -m ruff
+else
+  PYTHON  := $(VENV)/bin/python
+  PIP     := $(VENV)/bin/pip
+  UVICORN := $(VENV)/bin/uvicorn
+  PYTEST  := $(VENV)/bin/pytest
+  RUFF    := $(VENV)/bin/ruff
+endif
 
 # ---------------------------------------------------------------------------
 # Python 3.11 resolution — works on Linux, macOS, and any CI runner
@@ -82,7 +93,7 @@ help: ## Show this help message
 # Dev container shell — for non-VS Code users
 # ---------------------------------------------------------------------------
 
-dev-shell: ## Build the dev container (Python 3.11 + Node 24) and drop into a bash shell
+dev-shell: ## Build the dev container (Python 3.11 + Node 24), run setup, drop into bash
 	docker build -t ccrag-dev -f .devcontainer/Dockerfile .
 	docker run --rm -it \
 	  -v "$(CURDIR)":/workspace \
@@ -95,7 +106,7 @@ dev-shell: ## Build the dev container (Python 3.11 + Node 24) and drop into a ba
 # Setup (run inside the dev container, or locally if Python 3.11 is present)
 # ---------------------------------------------------------------------------
 
-setup: setup-backend setup-frontend ## Full first-time setup (backend + frontend)
+setup: setup-backend setup-frontend install-hooks ## Full first-time setup (backend + frontend + git hooks)
 	@echo ""
 	@echo "Setup complete. Next steps:"
 	@echo "  1. Add PDFs to data/"
@@ -103,6 +114,11 @@ setup: setup-backend setup-frontend ## Full first-time setup (backend + frontend
 	@echo "  3. make backend     (terminal 1)"
 	@echo "  4. make frontend    (terminal 2)"
 	@echo "  5. Open http://localhost:5173"
+
+install-hooks: ## Install git hooks from scripts/ into .git/hooks/
+	cp scripts/pre-commit .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
+	@echo "✓ pre-commit hook installed"
 
 setup-backend: .python-check ## Install Python deps and spacy model
 	"$(PYTHON311)" -m venv --clear $(VENV)

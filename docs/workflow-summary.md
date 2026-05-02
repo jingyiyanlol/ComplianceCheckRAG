@@ -11,9 +11,13 @@ This document outlines the complete development, testing, and deployment workflo
 git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
 code ComplianceCheckRAG
 # Select "Reopen in Container" when prompted
+# make setup runs automatically inside the container
 
 # Or use CLI dev container
-make dev-shell
+git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
+cd ComplianceCheckRAG
+make install-hooks   # one-time: install git hooks from scripts/
+make dev-shell       # build image (deps pre-installed) and drop into bash
 ```
 
 ### 2. Make changes
@@ -30,18 +34,20 @@ vim requirements.in   # (pre-commit hook will auto-compile requirements.txt)
 vim frontend/package.json
 ```
 
-### 3. Test locally (fast iteration)
+### 3. Test before committing
 
 ```bash
-# Quick test in local venv (if Python 3.11)
+# Test in local venv (fast iteration, requires Python 3.11)
 make test-local
 
-# Full Docker test (guaranteed Python 3.11 + all deps)
+# Test in Docker (guaranteed Python 3.11 + all deps, matches CI exactly)
 make test
 
 # Frontend
 cd frontend && npm run lint && npm run build
 ```
+
+**Note:** `make test` builds a Docker image with a dedicated test stage and runs pytest inside it, ensuring the same Python 3.11 and dependency versions as CI. This is the recommended approach to avoid local environment drift.
 
 ### 4. Pre-commit hooks
 

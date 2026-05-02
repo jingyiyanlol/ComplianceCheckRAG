@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Data / generated artifacts (large files, not needed in image)
+data/*.pdf
+llms-txt/
+.chroma/
+
+# Telemetry
+telemetry.db
+
+# Dev tooling
+.git/
+.devcontainer/
+.github/
+docs/
+k8s/
+
+# Secrets
+.env

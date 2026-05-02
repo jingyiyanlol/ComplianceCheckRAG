@@ -123,11 +123,11 @@ code ComplianceCheckRAG
 VS Code will detect `.devcontainer/devcontainer.json` and prompt:
 > "Folder contains a Dev Container configuration file. Reopen in Container?"
 
-Click **Reopen in Container**. The image builds once (~2 min), then `make setup` runs automatically inside it.
+Click **Reopen in Container**. The image builds once (~2 min), then `make setup` runs automatically inside it. This installs the pre-commit hook, creates `.env` from `.env.example`, and sets up all project dependencies.
 
-**2. Configure environment**
+**2. Configure environment (if needed)**
 
-The setup step creates `.env` from `.env.example` if it doesn't exist. Edit it if your Ollama URL or model name differs from the defaults.
+Edit `.env` if your Ollama URL or model name differs from the defaults.
 
 **3. Add your PDFs**
 
@@ -159,13 +159,13 @@ Port forwarding is configured automatically. Open http://localhost:5173 in your 
 ```bash
 git clone https://github.com/jingyiyanlol/ComplianceCheckRAG.git
 cd ComplianceCheckRAG
-make dev-shell        # builds the dev container image and drops into bash
+make install-hooks   # one-time: install pre-commit hook from scripts/
+make dev-shell       # builds the dev container image (with deps pre-installed) and drops into bash
 ```
 
-Inside the container shell:
+Inside the container shell, everything is ready — Python 3.11 and npm dependencies are already installed in the image:
 
 ```bash
-make setup            # creates .venv, installs Python + npm deps, downloads spacy model
 cp .env.example .env  # edit as needed
 cp your-docs/*.pdf data/
 make ingest

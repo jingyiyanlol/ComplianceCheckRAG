@@ -1,0 +1,31 @@
+#!/bin/bash
+# Pre-commit hook: regenerate requirements.txt if requirements.in changed
+# Runs pip-compile inside the dev container via 'make compile-deps'
+#
+# Install: make install-hooks
+# Source:  scripts/pre-commit (committed to repo)
+
+set -e
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if requirements.in is staged
+if git diff --cached --name-only | grep -q "^requirements.in$"; then
+    echo -e "${YELLOW}requirements.in modified — regenerating requirements.txt in dev container...${NC}"
+
+    # Run pip-compile inside the dev container
+    if make compile-deps; then
+        # Stage the generated requirements.txt
+        git add requirements.txt
+        echo -e "${GREEN}✓ requirements.txt regenerated and staged${NC}"
+    else
+        echo -e "${RED}ERROR: make compile-deps failed. Fix requirements.in and try again.${NC}"
+        exit 1
+    fi
+fi
+
+exit 0

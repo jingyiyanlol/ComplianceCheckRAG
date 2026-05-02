@@ -2,6 +2,20 @@
 
 The project includes a git pre-commit hook that automatically regenerates `requirements.txt` whenever `requirements.in` is modified, ensuring the dependency lockfile stays in sync with the source file.
 
+## Installation
+
+The hook script is committed to the repo at `scripts/pre-commit`. After cloning, install it with:
+
+```bash
+make install-hooks
+```
+
+This copies `scripts/pre-commit` to `.git/hooks/pre-commit` and makes it executable.
+
+**Note:** The `.git/` directory is never tracked by version control, so the hook must be installed once per clone. `make setup` (the standard first-time setup) runs `install-hooks` automatically, so if you followed the normal setup steps you are already covered.
+
+---
+
 ## How it works
 
 When you attempt to commit changes that include `requirements.in`:
@@ -65,18 +79,22 @@ git commit -m "Update pinned dependencies"
 ## Requirements
 
 - **Docker**: The hook runs `make compile-deps`, which uses Docker to ensure Python 3.11 and correct resolution
-- **Executable hook**: The hook is installed at `.git/hooks/pre-commit` and must be executable (`chmod +x`)
+- **Hook installed**: Run `make install-hooks` (or `make setup`) to copy and install the hook
 
 ## Troubleshooting
 
 ### Hook doesn't run
 
-```bash
-# Verify the hook is executable
-ls -la .git/hooks/pre-commit
+Ensure you have installed the hook after cloning the repo:
 
-# Make it executable if needed
-chmod +x .git/hooks/pre-commit
+```bash
+make install-hooks
+```
+
+Then verify it's executable:
+
+```bash
+ls -la .git/hooks/pre-commit
 ```
 
 ### Hook fails — Docker not available
