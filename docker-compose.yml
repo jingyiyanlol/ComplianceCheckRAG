@@ -20,10 +20,11 @@ services:
     environment:
       - ANONYMIZED_TELEMETRY=false
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 5
+      start_period: 30s
 
   backend:
     build: .
